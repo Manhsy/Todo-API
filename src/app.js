@@ -1,77 +1,29 @@
 
 //require = import package express 
-//create, read, update, delete
+
 const express = require("express");
 const bodyParser = require("body-parser");
-const app = express();
+const app = express(); //express connects us to the server 
+const router = require("./routes/router")
 const port = 3000;
+//to read passeed in json files 
+app.use(bodyParser.json()); //know as a middleware: a pluging that we install 
+//morgan = logging, helmet = API security, expreess rate limit = rate limits the API based on some coding
+const morgan = require("morgan");
+const helmet = require("helmet");
+const ERL = require("express-rate-limit"); //prevents spam
+//configure the middleware
 app.use(bodyParser.json());
+app.use((morgan("short"))); //logs information: IP address, response time, route, method. types: standard, common, dev, short, tiny tokens
+app.use(helmet()) 
+app.use(ERL({
+  windowMs: 60 * 1000, //milisecond 
+  max: 5, //max number of request a user can make in the time frame of window Ms
+  message: "too many request, please slow down"
+}));
 
-//db
-const db = [];
-
-const randomId = () => Math.random().toString(16).substr(2);
-
-app.post("/todos", (req, res) => {
-        // get text from request
-        const text = req.body.x;
-
-        // get current time (for timestamp)
-        const created_at = Date.now();
-
-        // also assign this a random ID to uniquely identify this todo item
-        const id = randomId();
-
-        // create data (for this todo)
-        const data = { id, text, created_at };
-
-        // put data in database
-        db.push(data);
-
-        // send back data to user
-        res.json(data);
-  });
-  
-  app.get("/todos", (req, res) => {
-        res.json(db);
-  });
-  //overwrite
-  app.put("/todos/:id", (req, res) => {
-    // get id from :id
-    const id = req.params.id;
-  
-    // get text we wanna change it to
-    const text = req.body.text;
-  
-    // loop through our database
-    for (let i = 0; i < db.length; i++) {
-      // check if this ID matches
-      if (db[i].id === id) {
-        // get this todo item
-        const todo = db[i];
-  
-        // change text
-        todo.text = text;
-  
-        // send back modified todo
-        res.json(todo);
-      }
-    }
-  });
-  
-  app.delete("/todos/:id", (req, res) => {
-    // get id from :id
-    const id = req.params.id;
-    for (let i = 0; i < db.length; i++) {
-        if(db[i].id === id){
-            db.splice(i, 1);
-            // send back modified todo
-            res.json(db);
-        }
-    }
-  });
-  
-
+//contigure routes
+app.use("/todos", router); //call routes in /todos path in router
 
   app.listen(port, () => {
     console.log(`To-do app listening at http://localhost:${port}`)
