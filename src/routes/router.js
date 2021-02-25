@@ -7,11 +7,12 @@ const express = require('express');
 const router = express.Router();
 
 //"database"
-const db = [];
+const Todo = require("../models/Todo");
 //"/" because in app.js we're using a router that defines our path
-router.post("/", (req, res) => {
+//async because our db does not right instantly so where is a wait for the next post
+router.post("/", async(req, res) => {
     // get text from request
-    const text = req.body.x;
+    const text = req.body.text;
 
     // get current time (for timestamp)
     const created_at = Date.now();
@@ -19,55 +20,50 @@ router.post("/", (req, res) => {
     // also assign this a random ID to uniquely identify this todo item
     const id = randomId();
 
-    // create data (for this todo)
-    const data = { id, text, created_at };
+    //create new todo item
+    const todo = new Todo({text, created_at, id});
 
-    // put data in database
-    db.push(data);
+    //save to mongoDB
+    const result = await todo.save();
 
     // send back data to user
-    res.json(data);
+    res.json(result);
 });
 
-router.get("/", (req, res) => {
-    res.json(db);
+router.get("/", async(req, res) => {
+
+    // get todos from mongodb
+    const todos = await Todo.find();
+
+    //return the result 
+    res.json(todos);
 });
 
 //overwrite
-router.put("/:id", (req, res) => {
-// get id from :id
-const id = req.params.id;
+router.put("/:id", async(req, res) => {
+  //get id frorm :id
+  const id = req.params.id;
 
-// get text we wanna change it to
-const text = req.body.text;
+  //gett he text we wanna change it to
+  const text = req.body.text;
 
-// loop through our database
-for (let i = 0; i < db.length; i++) {
-  // check if this ID matches
-  if (db[i].id === id) {
-    // get this todo item
-    const todo = db[i];
+  // update
+  await Todo.updateOne({ id }, { text });
 
-    // change text
-    todo.text = text;
-
-    // send back modified todo
-    res.json(todo);
-  }
-}
+  // send back json response
+  res.json({ success: true });
 });
+router.delete("/:id", async(req, res) => {
+  // get id from :id
+  const id = req.params.id;
+  
+  //delete 
+  await Todo.deleteOne({ id })
 
-router.delete("/:id", (req, res) => {
-// get id from :id
-const id = req.params.id;
-for (let i = 0; i < db.length; i++) {
-    if(db[i].id === id){
-        db.splice(i, 1);
-        // send back modified todo
-        res.json(db);
-    }
-}
+  // send back json response
+  res.json({ success: true });
+
 });
 
 
-module.exports = router
+module.exports = router;
